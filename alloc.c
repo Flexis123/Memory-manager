@@ -2,45 +2,59 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <chunk.h>
 
-#define PAGE_SIZE 4096
 #define ALIGMENT sizeof(long)
 
-struct chunk_header{
-    struct chunk_header* next;
-    struct chunk_header* previous;
-    size_t size;
-    short is_free;
-};
+struct chunk_header_list heap;
+struct chunk_header_list free_list;
 
 
 size_t allign_size(size_t size)
 {
     size_t unallig = size % ALIGMENT;
-    return size + (ALIGMENT - unallig);
+    if(unallig != 0) return size + (ALIGMENT - unallig);
+    return size;
 }
 
-struct chunk_header* heap_head = NULL;
-struct chunk_header* heap_tail = NULL;
 
 void *mymalloc(size_t size)
 {
-    struct chunk_header* ch = sbrk(sizeof(struct chunk_header));
-    void* ptr = sbrk(allign_size(size));
-    
-    ch->is_free = 0;
-    ch->size = allign_size(size);
+    if(size == 0) return NULL;
 
-    if(heap_head == NULL) 
+    struct chunk_header* ch;
+    void* ptr;
+
+    ch = free_list.head;
+    size_t aligned_size = allign_size(size);
+    while(ch != NULL)
     {
-        heap_head = ch;
-        heap_tail = ch;
-        ch->previous = NULL;
-        ch->next = NULL;
-    }else{
-        ch->previous = heap_tail;
-        heap_tail->next = ch;
-        heap_tail = ch;
+        if(ch->size >= aligned_size + sizeof(struct chunk_header)) break;
+    }
+
+    if(ch == NULL)
+    {
+        ch = sbrk(sizeof(struct chunk_header));
+        ptr = sbrk(aligned_size);
+        add_elem(&heap, ch);
+    }
+    else
+    {
+        ptr = ((void*) (ch + sizeof(struct chunk_header)));
+
+        remove_elem(&free_list, ch);
+        
+        struct chunk_header* free_part = ch + sizeof(struct chunk_header) + aligned_size;
+        free_part->is_free = 1;
+        free_part->previous = ch;
+        free_part->next = ch->next;
+        free_part = ch->size - aligned_size;
+
+        ch->next = free_part;
+        ch->is_free = 0;
+        ch->size = aligned_size;
+
+        add_elem(&free_list, free_part);
     }
 
     return ptr;
@@ -48,19 +62,35 @@ void *mymalloc(size_t size)
 
 void *mycalloc(size_t nmemb, size_t size)
 {
-    return NULL;
+    size_t alligned_size = nmemb * size;
+    if(alligned_size < nmemb || alligned_size < size || alligned_size == 0) return NULL;
+
+    void* ptr = malloc(alligned_size);
+    return memset(ptr, 0, allign_size(alligned_size));
 }
 
 void myfree(void *ptr)
 {
-    struct chunk_header* free_ch = heap_head;
-    while(free_ch != NULL){
-        if(free_ch + sizeof(struct chunk_header) == ptr){
-            break;
+    if(ptr == NULL) return;
+
+    struct chunk_header* free_ch = get_elem(&heap, ptr - sizeof(struct chunk_header));
+    if(free_ch != NULL)
+    {
+        free_ch->is_free = 1;
+
+        if(free_ch->next != NULL && free_ch->next->is_free)
+        {
+            free_ch->size += free_ch->next->size;
+            free_ch->next = free_ch->next->next;
         }
-        free_ch = free_ch->next;
+
+        if(free_ch->previous != NULL && free_ch->previous->is_free)
+        {
+            free_ch->size += free_ch->previous->size;
+            free_ch->next = free_ch->previous->previous;
+        }
+        add_elem(&free_list, free_ch);
     }
-    free_ch->is_free = 1;
 }
 
 void *myrealloc(void *ptr, size_t size)
