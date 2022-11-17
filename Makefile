@@ -1,8 +1,8 @@
 # Add additional .c files here if you added any yourself.
-ADDITIONAL_SOURCES = $("alloc.c")
+ADDITIONAL_SOURCES = 
 
 # Add additional .h files here if you added any yourself.
-ADDITIONAL_HEADERS = $("alloc.h")
+ADDITIONAL_HEADERS = 
 
 # -- Do not modify below this point - will get replaced during testing --
 CURDIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
