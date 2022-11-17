@@ -47,9 +47,10 @@ void *mymalloc(size_t size)
     size_t aligned_size = allign_size(size);
     while(ch != NULL)
     {
-        if(ch->is_free && ch->size >= aligned_size) break;
+        if(ch->is_free && ch->size >= aligned_size) break; 
         ch = ch->next;
     }
+
 
     void* ptr = NULL;
     if(ch == NULL)
@@ -78,34 +79,17 @@ void *mymalloc(size_t size)
     {
         ptr = ch + 1;
 
-        size_t free_part_size = ch->size - aligned_size;
-
-        printf("\nfree part size %lu\n", free_part_size);
-        printf("ch size %lu\n", ch->size);
-        printf("aligned size %lu\n\n", aligned_size);
-
-        if(free_part_size > sizeof(struct chunk_header))
-        {
-            
-            struct chunk_header* free_part = (struct chunk_header*) ptr + aligned_size;
-            free_part->is_free = 1;
-            free_part->size = ch->size - aligned_size - sizeof(struct chunk_header);
-            free_part->previous = ch;
-            free_part->next = ch->next;
-
-            ch->next->previous = free_part;
-            ch->next = free_part; 
-            
-        }
-        else
-        {
-            printf("pula pula");
-        }
-
-        ch->is_free = 0;
+        size_t save_size = ch->size;
         ch->size = aligned_size;
+        ch->is_free = 0;
 
-        print_list();
+        struct chunk_header* free_part = ptr + ch->size;
+        free_part->next = ch->next;
+        ch->next = free_part;
+        free_part->previous = ch;
+        ch->next->previous = free_part;
+        free_part->is_free = 1;
+        free_part->size = save_size - (sizeof(struct chunk_header) + ch->size);
     }
     return ptr;
 }
@@ -125,7 +109,22 @@ void myfree(void *ptr)
         ch = ch->next;
     }
 
-    if(ch != NULL) ch->is_free = 1;
+    if(ch != NULL) {
+        ch->is_free = 1;
+        /*
+        if(ch->next != NULL && ch->next->is_free)
+        {
+            ch->size += ch->next->size;
+            ch->next = ch->next->next;
+        }
+
+        if(ch->previous != NULL && ch->previous->is_free)
+        {
+            ch->size += ch->previous->size;
+            ch->previous = ch->previous->previous;
+        }
+        */
+    }
 }
 
 void *myrealloc(void *ptr, size_t size)
