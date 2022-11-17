@@ -18,7 +18,6 @@ struct chunk_header* head = NULL;
 struct chunk_header* tail = NULL;
 
 
-
 size_t allign_size(size_t size)
 {
     size_t unallig = size % ALIGMENT;
@@ -26,17 +25,29 @@ size_t allign_size(size_t size)
     return size;
 }
 
+void print_list()
+{
+    struct chunk_header* ch = head;
+    while (ch != NULL)
+    {
+        printf("%d ", ch);
+        ch = ch->next;
+    }
+    printf("\n");
+}
+
+size_t get_size_of_section(struct chunk_header* section_start);
 
 void *mymalloc(size_t size)
 {
     if(size == 0) return NULL;
     
-
+    
     struct chunk_header* ch = head;
     size_t aligned_size = allign_size(size);
     while(ch != NULL)
     {
-        if(ch->is_free && ch->size >= aligned_size + sizeof(struct chunk_header)) break;
+        if(ch->is_free && ch->size >= aligned_size) break;
         ch = ch->next;
     }
 
@@ -46,21 +57,18 @@ void *mymalloc(size_t size)
         ch = sbrk(sizeof(struct chunk_header));
         ptr = sbrk(aligned_size);
 
+        ch->is_free = 0;
+        ch->size = aligned_size;
+        ch->next = NULL;
+
         if(head == NULL)
         {
-            ch->next = NULL;
             ch->previous = NULL;
-
             head = ch;
             tail = ch;
-
-            printf("%u\n", head);
-            printf("%u\n", tail);
         }
         else
         {
-            printf("%u\n", head);
-            printf("%u\n", tail);
             tail->next = ch;
             ch->previous = tail;
             tail = ch;
@@ -68,23 +76,30 @@ void *mymalloc(size_t size)
     }
     else
     {
-        ptr = ((void*) ch + 1);
+        ptr = ch + 1;
 
-        struct chunk_header* free_part = (struct chunk_header*) ptr + aligned_size + sizeof(struct chunk_header);
-        free_part->is_free = 1;
-        free_part->previous = ch;
-        free_part->next = ch->next;
-        free_part->size = ch->size - aligned_size;
+        size_t free_part_size = ch->size - aligned_size;
 
-        ch->next = free_part;
-        ch->next->next->previous = free_part;
-        ch->size = aligned_size;
+       // printf("free part size %lu\n", free_part_size);
+       // printf("ch size %lu\n", ch->size);
+        //printf("aligned size %lu\n\n", aligned_size);
+
         ch->is_free = 0;
+        ch->size = aligned_size;
+        if(free_part_size > 32)
+        {
+            
+            struct chunk_header* free_part = (struct chunk_header*) ptr + aligned_size;
+            free_part->is_free = 1;
+            free_part->size = ch->size - aligned_size - sizeof(struct chunk_header);
+            free_part->previous = ch;
+            free_part->next = ch->next;
+
+            ch->next->previous = free_part;
+            ch->next = free_part;
+            
+        }
     }
-
-    printf("%u\n", head);
-    printf("%u\n", tail);
-
     return ptr;
 }
 
@@ -95,18 +110,15 @@ void *mycalloc(size_t nmemb, size_t size)
 
 void myfree(void *ptr)
 {
+    
     struct chunk_header* ch = head;
-    void* actual_ptr = NULL;
     while(ch != NULL)
     {
-        actual_ptr = ((void *) ch + 1);
-        if(actual_ptr == ptr) break;
+        if(ch + 1 == ptr) break;
         ch = ch->next;
     }
 
-    if(ch != NULL) {
-        ch->is_free = 1;
-    }
+    if(ch != NULL) ch->is_free = 1;
 }
 
 void *myrealloc(void *ptr, size_t size)
