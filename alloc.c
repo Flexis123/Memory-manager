@@ -30,7 +30,7 @@ void print_list()
     struct chunk_header* ch = head;
     while (ch != NULL)
     {
-        printf("%d ", ch);
+        printf("%lu ", ch->size);
         ch = ch->next;
     }
     printf("\n");
@@ -80,13 +80,11 @@ void *mymalloc(size_t size)
 
         size_t free_part_size = ch->size - aligned_size;
 
-       // printf("free part size %lu\n", free_part_size);
-       // printf("ch size %lu\n", ch->size);
-        //printf("aligned size %lu\n\n", aligned_size);
+        printf("\nfree part size %lu\n", free_part_size);
+        printf("ch size %lu\n", ch->size);
+        printf("aligned size %lu\n\n", aligned_size);
 
-        ch->is_free = 0;
-        ch->size = aligned_size;
-        if(free_part_size > 32)
+        if(free_part_size > sizeof(struct chunk_header))
         {
             
             struct chunk_header* free_part = (struct chunk_header*) ptr + aligned_size;
@@ -96,9 +94,18 @@ void *mymalloc(size_t size)
             free_part->next = ch->next;
 
             ch->next->previous = free_part;
-            ch->next = free_part;
+            ch->next = free_part; 
             
         }
+        else
+        {
+            printf("pula pula");
+        }
+
+        ch->is_free = 0;
+        ch->size = aligned_size;
+
+        print_list();
     }
     return ptr;
 }
