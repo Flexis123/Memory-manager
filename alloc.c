@@ -10,6 +10,7 @@ struct chunk_header
 {
     struct chunk_header* next;
     struct chunk_header* previous;
+    struct chunk_header* next_free;
     size_t size;
     short is_free;
 };
@@ -82,8 +83,6 @@ void *mymalloc(size_t size)
     {
         ptr = ch + 1;
 
-        printf("seg fault\n");
-
         size_t free_part_size = ch->size - aligned_size;
         ch->is_free = 0;
         ch->size = aligned_size;
@@ -91,8 +90,6 @@ void *mymalloc(size_t size)
         struct chunk_header* free_part = ptr + ch->size;
         //avoid overflow just consume the free part 
         //because the free part is too small to hold a chunk header
-
-         printf("free part size %d\n", free_part_size);
 
         if(free_part_size < sizeof(struct chunk_header))
         {
@@ -104,7 +101,7 @@ void *mymalloc(size_t size)
 
             if(ch->next != NULL) ch->next->previous = free_part;
             else tail = free_part;
-            
+
             ch->next = free_part;
             free_part->previous = ch;
             free_part->is_free = 1;
