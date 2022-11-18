@@ -28,6 +28,8 @@ size_t allign_size(size_t size)
 void print_list()
 {
     struct chunk_header* ch = head;
+    int i = 0;
+    printf("printing list\n");
     while (ch != NULL)
     {
         printf("%lu ", ch->size);
@@ -45,14 +47,15 @@ void *mymalloc(size_t size)
     
     struct chunk_header* ch = head;
     size_t aligned_size = allign_size(size);
+
+    print_list();
     while(ch != NULL)
     {
         if(ch->is_free && ch->size >= aligned_size) break; 
         ch = ch->next;
     }
-
-
     void* ptr = NULL;
+
     if(ch == NULL)
     {
         ch = sbrk(sizeof(struct chunk_header));
@@ -79,18 +82,33 @@ void *mymalloc(size_t size)
     {
         ptr = ch + 1;
 
-        size_t save_size = ch->size;
-        ch->size = aligned_size;
+        printf("seg fault\n");
+
+        size_t free_part_size = ch->size - aligned_size;
         ch->is_free = 0;
+        ch->size = aligned_size;
 
         struct chunk_header* free_part = ptr + ch->size;
-        free_part->next = ch->next;
-        ch->next = free_part;
-        free_part->previous = ch;
-        ch->next->previous = free_part;
-        free_part->is_free = 1;
-        free_part->size = save_size - (sizeof(struct chunk_header) + ch->size);
+        //avoid overflow just consume the free part 
+        //because the free part is too small to hold a chunk header
+
+         printf("free part size %d\n", free_part_size);
+
+        if(free_part_size < sizeof(struct chunk_header))
+        {
+            ch->size += free_part_size;
+        }
+        else
+        {
+            free_part->next = ch->next;
+            ch->next->previous = free_part;
+            ch->next = free_part;
+            free_part->previous = ch;
+            free_part->is_free = 1;
+            free_part->size = free_part_size - sizeof(struct chunk_header);
+        }
     }
+
     return ptr;
 }
 
@@ -111,19 +129,8 @@ void myfree(void *ptr)
 
     if(ch != NULL) {
         ch->is_free = 1;
-        /*
-        if(ch->next != NULL && ch->next->is_free)
-        {
-            ch->size += ch->next->size;
-            ch->next = ch->next->next;
-        }
-
-        if(ch->previous != NULL && ch->previous->is_free)
-        {
-            ch->size += ch->previous->size;
-            ch->previous = ch->previous->previous;
-        }
-        */
+    
+        
     }
 }
 
