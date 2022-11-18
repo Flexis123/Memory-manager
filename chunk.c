@@ -1,55 +1,30 @@
-#include <chunk.h>
-#include <stddef.h>
+#include "chunk.h"
 
-void add_elem(struct chunk_header_list* list, struct chunk_header* ch)
+#include <stddef.h>
+#include <stdint.h>
+
+void append_elem(struct chunk_header_list* list, struct chunk_header* ch)
 {
-    if(list->head == NULL) 
+    ch->next = NULL;
+    if(list->head == NULL)
     {
+        ch->previous = NULL;
         list->head = ch;
         list->tail = ch;
-        ch->previous = NULL;
-        ch->next = NULL;
     }
     else
     {
-        ch->previous = list->tail;
         list->tail->next = ch;
+        ch->previous = list->tail;
         list->tail = ch;
     }
-}
-
-struct chunk_header *get_elem(struct chunk_header_list* list, struct chunk_header* ch){
-    struct chunk_header* elem = list->head;
-    while(elem != NULL)
-    {
-        if(elem == ch) break;
-        elem = elem->next;
-    }
-    return elem;
 }
 
 void remove_elem(struct chunk_header_list* list, struct chunk_header* ch)
 {
-    struct chunk_header* elem = get_elem(list, ch);
-    if(elem != NULL)
-    {
-        struct chunk_header* prev = elem->previous;
-        struct chunk_header* next = elem->next;
+    if(ch->previous != NULL) ch->previous->next = ch->next;
+    else list->head = ch->next;
 
-        if(elem == list->tail) 
-        {
-            list->tail = prev;
-            list->tail->next = NULL;
-        }
-        else if (elem == list->head)
-        {
-            list->head = next;
-            list->head->previous = NULL;
-        }
-        else
-        {
-            prev->next = next;
-            next->previous = prev;
-        }
-    }
+    if(ch->next != NULL) ch->next->previous = ch->previous;
+    else list->tail = ch->previous;
 }
