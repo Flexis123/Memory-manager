@@ -101,7 +101,10 @@ void *mymalloc(size_t size)
         else
         {
             free_part->next = ch->next;
-            ch->next->previous = free_part;
+
+            if(ch->next != NULL) ch->next->previous = free_part;
+            else tail = free_part;
+            
             ch->next = free_part;
             free_part->previous = ch;
             free_part->is_free = 1;
