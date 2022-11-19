@@ -218,10 +218,22 @@ void *myrealloc(void *ptr, size_t size)
 
     if(ch_next->is_free && aligned_size > ch->size && free_part_size >= extra_size)
     {
-        struct chunk_header* free_part;
-        return ptr;
+        struct chunk_header* free_part = get_right_neighbour(ch);
+        remove_elem(free_list, free_part);
+
+        ch->size += extra_size;
+
+        if(new_free_part_size < sizeof(struct chunk_header)) ch->size += new_free_part_size;
+        else
+        {
+            struct chunk_header* new_free_part = get_right_neighbour(ch);
+            new_free_part->size = new_free_part_size;
+            new_free_part->is_free = 1;
+
+            append_elem(free_list, new_free_part);
+        }
     }
-    else
+    else if(aligned_size != ch->size && !(aligned_size < ch->size))
     {
         void* new_ptr = mymalloc(aligned_size);
         if(new_ptr != NULL)
@@ -232,6 +244,8 @@ void *myrealloc(void *ptr, size_t size)
         }
         return new_ptr;
     }
+
+    return ptr;
 }
 
 
