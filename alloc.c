@@ -113,6 +113,9 @@ void *mymalloc(size_t size)
         ch = sbrk(sizeof(struct chunk_header));
         ptr = sbrk(aligned_size);
 
+        printf("ch %lu\n", ch);
+        printf("ptr %lu\n", ptr);
+
         ch->size = aligned_size;
         ch->is_free = 0;
         append_elem(heap, ch);
@@ -188,11 +191,44 @@ void *myrealloc(void *ptr, size_t size)
         ch = ch->next;
     }
 
-    struct chunk_header* ch_next = get_right_neighbour(ch);
-    if(ch_next->is_free && ch_next->size + sizeof(struct chunk_header) >= size - ch->size)
-    {
+    size_t aligned_size = allign_size(size);
 
+    struct chunk_header* ch_next = get_right_neighbour(ch);
+    if(ch_next->is_free && ch_next->size >= aligned_size - ch->size)
+    {
+        size_t free_part_size = ch->size - aligned_size;
+        ch->size = aligned_size;
+        ch->is_free = 0;
+
+        struct chunk_header* free_part = ptr + ch->size;
+        if(free_part_size < sizeof(struct chunk_header))
+        {
+            ch->size += free_part_size;
+        }
+        else
+        {
+            free_part->size = free_part_size - sizeof(struct chunk_header);
+            free_part->is_free = 1;
+            append_elem(free_list, free_part);
+        }
+
+        remove_elem(free_list, ch);
+        append_elem(heap, ch);
+
+        printf("split chunks\n");
+        return ptr;
     }
+    else{
+        print_list(heap);
+       void* new_ptr_header = mymalloc(aligned_size);
+       print_list(heap);
+       printf("%lu\n", new_ptr_header);
+       memcpy(new_ptr_header, ch + 1, ch->size);
+
+
+       return new_ptr_header;
+    } 
+    
 }
 
 

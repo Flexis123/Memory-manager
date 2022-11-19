@@ -37,12 +37,9 @@ static void test_malloc_simple(void)
 {
     checked_alloc(1);
     checked_alloc(8);
-    void* ptr3 = checked_alloc(128);
-    void* ptr1 = checked_alloc(4096);
-    void* ptr2 = checked_alloc(4097);
-
-    checked_free(ptr1);
-    checked_free(ptr2);
+    checked_alloc(128);
+    checked_alloc(4096);
+    checked_alloc(4097);
 }
 
 static void test_malloc_zero(void)
