@@ -2,78 +2,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include "chunk.h"
 
 #define ALIGMENT sizeof(long)
 #define MERGE_FACTOR 20
 
-struct chunk_header
-{
-    struct chunk_header* next;
-    struct chunk_header* previous;
-    size_t size;
-    int is_free;
-};
-
-struct chunk_header_list
-{
-    struct chunk_header* head;
-    struct chunk_header* tail;
-    size_t length;
-};
-
-struct chunk_header_list* init_list()
-{
-    struct chunk_header_list* list = sbrk(sizeof(struct chunk_header_list));
-    list->head = NULL;
-    list->tail = NULL;
-    return list;
-}
-
-void append_elem(struct chunk_header_list* list, struct chunk_header* ch)
-{
-    ch->next = NULL;
-    if(list->head == NULL)
-    {
-        ch->previous = NULL;
-        list->head = ch;
-        list->tail = ch;
-    }
-    else
-    {
-        list->tail->next = ch;
-        ch->previous = list->tail;
-        list->tail = ch;
-    }
-
-    list->length++;
-}
-
-void remove_elem(struct chunk_header_list* list, struct chunk_header* ch)
-{
-    if(ch->previous != NULL) ch->previous->next = ch->next;
-    else list->head = ch->next;
-
-    if(ch->next != NULL) ch->next->previous = ch->previous;
-    else list->tail = ch->previous;
-
-    list->length--;
-}
-
-
-struct chunk_header_list* heap = NULL;
-struct chunk_header_list* free_list = NULL;
-
-
-void print_list(struct chunk_header_list* free_list)
-{
-    struct chunk_header* ch = free_list->head;
-    while (ch != NULL)
-    {
-        printf("%lu ", ch->size);
-        ch = ch->next;
-    }
-    printf("\n");
-}
 
 size_t allign_size(size_t size)
 {
@@ -82,33 +15,8 @@ size_t allign_size(size_t size)
     return size;
 }
 
-struct chunk_header* get_right_neighbour(struct chunk_header* ch)
-{
-    return ((void*)(ch + 1)) + ch->size;
-}
-
-
-void split_chunks(void* ptr, struct chunk_header*  ch, size_t aligned_size)
-{
-    size_t free_part_size = ch->size - aligned_size;
-    ch->size = aligned_size;
-    ch->is_free = 0;
-
-    struct chunk_header* free_part = ptr + ch->size;
-    if(free_part_size < sizeof(struct chunk_header))
-    {
-        ch->size += free_part_size;
-    }
-    else
-    {
-        free_part->size = free_part_size - sizeof(struct chunk_header);
-        free_part->is_free = 1;
-        append_elem(free_list, free_part);
-    }
-
-    remove_elem(free_list, ch);
-    append_elem(heap, ch);
-}
+struct chunk_header_list* heap = NULL;
+struct chunk_header_list* free_list = NULL;
 
 
 void *mymalloc(size_t size)
@@ -143,7 +51,24 @@ void *mymalloc(size_t size)
     else
     {
         ptr = ch + 1;
-        split_chunks(ptr, ch, aligned_size);
+        size_t free_part_size = ch->size - aligned_size;
+        ch->size = aligned_size;
+        ch->is_free = 0;
+
+        struct chunk_header* free_part = ptr + ch->size;
+        if(free_part_size < sizeof(struct chunk_header))
+        {
+            ch->size += free_part_size;
+        }
+        else
+        {
+            free_part->size = free_part_size - sizeof(struct chunk_header);
+            free_part->is_free = 1;
+            append_elem(free_list, free_part);
+        }
+
+        remove_elem(free_list, ch);
+        append_elem(heap, ch);
     }
 
     return ptr;

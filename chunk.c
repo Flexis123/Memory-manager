@@ -1,7 +1,17 @@
 #include "chunk.h"
-
 #include <stddef.h>
 #include <stdint.h>
+#include <unistd.h>
+#include <stdio.h>
+
+
+struct chunk_header_list* init_list()
+{
+    struct chunk_header_list* list = sbrk(sizeof(struct chunk_header_list));
+    list->head = NULL;
+    list->tail = NULL;
+    return list;
+}
 
 void append_elem(struct chunk_header_list* list, struct chunk_header* ch)
 {
@@ -18,6 +28,8 @@ void append_elem(struct chunk_header_list* list, struct chunk_header* ch)
         ch->previous = list->tail;
         list->tail = ch;
     }
+
+    list->length++;
 }
 
 void remove_elem(struct chunk_header_list* list, struct chunk_header* ch)
@@ -27,4 +39,22 @@ void remove_elem(struct chunk_header_list* list, struct chunk_header* ch)
 
     if(ch->next != NULL) ch->next->previous = ch->previous;
     else list->tail = ch->previous;
+
+    list->length--;
+}
+
+struct chunk_header* get_right_neighbour(struct chunk_header* ch)
+{
+    return ((void*)(ch + 1)) + ch->size;
+}
+
+void print_list(struct chunk_header_list* free_list)
+{
+    struct chunk_header* ch = free_list->head;
+    while (ch != NULL)
+    {
+        printf("%lu ", ch->size);
+        ch = ch->next;
+    }
+    printf("\n");
 }
