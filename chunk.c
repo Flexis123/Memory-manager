@@ -5,9 +5,9 @@
 #include <stdio.h>
 
 
-struct chunk_header_list* init_list()
+struct chunk_header_list* init_list(void* heap_start)
 {
-    struct chunk_header_list* list = sbrk(sizeof(struct chunk_header_list));
+    struct chunk_header_list* list = inc_heap_end(heap_start, sizeof(struct chunk_header_list));
     list->head = NULL;
     list->tail = NULL;
     return list;

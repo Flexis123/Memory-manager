@@ -1,8 +1,8 @@
 # Add additional .c files here if you added any yourself.
-ADDITIONAL_SOURCES = chunk.c 
+ADDITIONAL_SOURCES = chunk.c heap.c
 
 # Add additional .h files here if you added any yourself.
-ADDITIONAL_HEADERS = chunk.h 
+ADDITIONAL_HEADERS = chunk.h heap.h
 
 # -- Do not modify below this point - will get replaced during testing --
 CURDIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))

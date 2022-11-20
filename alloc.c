@@ -3,6 +3,8 @@
 #include <string.h>
 #include <unistd.h>
 #include "chunk.h"
+#include "heap.h"
+#include <math.h>
 
 #define ALIGMENT sizeof(long)
 #define MERGE_FACTOR 20
@@ -15,8 +17,31 @@ size_t allign_size(size_t size)
     return size;
 }
 
-struct chunk_header_list* heap = NULL;
+
+struct heap_t* heap = NULL;
 struct chunk_header_list* free_list = NULL;
+
+void split_chunks(void* ptr, struct chunk_header* ch, size_t aligned_size)
+{
+    size_t free_part_size = ch->size - aligned_size;
+    ch->size = aligned_size;
+    ch->is_free = 0;
+
+    struct chunk_header* free_part = ptr + ch->size;
+    if(free_part_size < sizeof(struct chunk_header))
+    {
+        ch->size += free_part_size;
+    }
+    else
+    {
+        free_part->size = free_part_size - sizeof(struct chunk_header);
+        free_part->is_free = 1;
+        append_elem(free_list, free_part);
+    }
+
+    remove_elem(free_list, ch);
+    append_elem(heap->heap, ch);
+}
 
 
 void *mymalloc(size_t size)
@@ -25,8 +50,8 @@ void *mymalloc(size_t size)
     
     if(free_list == NULL || heap == NULL)
     {
-        heap = init_list();
-        free_list = init_list();
+        heap = init_heap(allign_size(pow(2, 15)));
+        free_list = init_list(heap);
     }
     
     struct chunk_header* ch = free_list->head;
@@ -41,34 +66,17 @@ void *mymalloc(size_t size)
     void* ptr = NULL;
     if(ch == NULL)
     {
-        ch = sbrk(sizeof(struct chunk_header));
-        ptr = sbrk(aligned_size);
+        ch = inc_heap_end(heap, sizeof(struct chunk_header));
+        ptr = inc_heap_end(heap, aligned_size);
 
         ch->size = aligned_size;
         ch->is_free = 0;
-        append_elem(heap, ch);
+        append_elem(heap->heap, ch);
     }
     else
     {
         ptr = ch + 1;
-        size_t free_part_size = ch->size - aligned_size;
-        ch->size = aligned_size;
-        ch->is_free = 0;
-
-        struct chunk_header* free_part = ptr + ch->size;
-        if(free_part_size < sizeof(struct chunk_header))
-        {
-            ch->size += free_part_size;
-        }
-        else
-        {
-            free_part->size = free_part_size - sizeof(struct chunk_header);
-            free_part->is_free = 1;
-            append_elem(free_list, free_part);
-        }
-
-        remove_elem(free_list, ch);
-        append_elem(heap, ch);
+        split_chunks(ptr, ch, aligned_size);
     }
 
     return ptr;
@@ -86,7 +94,7 @@ void *mycalloc(size_t nmemb, size_t size)
 
 void myfree(void *ptr)
 {
-    struct chunk_header* ch = heap->head;
+    struct chunk_header* ch = heap->heap->head;
     while(ch != NULL)
     {
         if(ch + 1 == ptr) break;
@@ -96,7 +104,7 @@ void myfree(void *ptr)
     if(ch != NULL) 
     {
         ch->is_free = 1;
-        remove_elem(heap, ch);
+        remove_elem(heap->heap, ch);
         append_elem(free_list, ch);
         
         if(free_list->length % MERGE_FACTOR)
@@ -128,7 +136,7 @@ void *myrealloc(void *ptr, size_t size)
         return ptr;
     }
 
-    struct chunk_header* ch = heap->head;
+    struct chunk_header* ch = heap->heap->head;
     while(ch != NULL)
     {
         if(ch + 1 == ptr) break;
@@ -140,35 +148,38 @@ void *myrealloc(void *ptr, size_t size)
 
     size_t free_part_size = (ch_next->size + sizeof(struct chunk_header));
     size_t new_free_part_size = free_part_size - extra_size;
-
+    
     if(ch_next->is_free && aligned_size > ch->size && free_part_size >= extra_size)
     {
         struct chunk_header* free_part = get_right_neighbour(ch);
         remove_elem(free_list, free_part);
 
         ch->size += extra_size;
+        ch->is_free = 0;
 
         if(new_free_part_size < sizeof(struct chunk_header)) ch->size += new_free_part_size;
         else
         {
             struct chunk_header* new_free_part = get_right_neighbour(ch);
             new_free_part->size = new_free_part_size;
-            new_free_part->is_free = 1;
-
-            append_elem(free_list, new_free_part);
+            myfree(new_free_part);
         }
     }
-    else if(aligned_size != ch->size && !(aligned_size < ch->size))
+    else if(aligned_size < ch->size) ;
+    else if(aligned_size > ch->size)
     {
         void* new_ptr = mymalloc(aligned_size);
         if(new_ptr != NULL)
         {
             size_t cpy_size = ch->size < aligned_size ? ch->size : aligned_size;
             memcpy(new_ptr, ptr, cpy_size);
-            myfree(ptr);
+            //todo fix this
+            // when calling myfree(ptr) it fucks up the heap for some reason
+           // myfree(ptr);
         }
         return new_ptr;
     }
+
 
     return ptr;
 }
