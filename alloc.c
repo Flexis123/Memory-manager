@@ -50,7 +50,7 @@ void *mymalloc(size_t size)
     
     if(free_list == NULL || heap == NULL)
     {
-        heap = init_heap(allign_size(pow(2, 15)));
+        heap = init_heap();
         free_list = init_list(heap);
     }
     

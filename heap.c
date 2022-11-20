@@ -10,7 +10,7 @@ void* inc_heap_end(struct heap_t* hp, size_t offset)
     hp->length += offset;
     if(hp->length > hp->size)
     {
-        size_t size_inc = offset;
+        size_t size_inc = offset + PAGE_SIZE;
         if(sbrk(size_inc) != NULL)
         {
             hp->size += size_inc;
@@ -21,12 +21,12 @@ void* inc_heap_end(struct heap_t* hp, size_t offset)
     return old_heap_end;
 }
 
-struct heap_t* init_heap(size_t size)
+struct heap_t* init_heap()
 {
     struct heap_t* hp = sbrk(sizeof(struct heap_t));
     hp->length = 0;
-    hp->size = size;
-    hp->heap_end = sbrk(size);
+    hp->size = PAGE_SIZE;
+    hp->heap_end = sbrk(PAGE_SIZE);
 
     hp->heap = init_list(hp);
 
