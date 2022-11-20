@@ -10,6 +10,7 @@ struct chunk_header_list* init_list(void* heap_start)
     struct chunk_header_list* list = inc_heap_end(heap_start, sizeof(struct chunk_header_list));
     list->head = NULL;
     list->tail = NULL;
+    list->length = 0;
     return list;
 }
 

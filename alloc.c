@@ -106,8 +106,8 @@ void myfree(void *ptr)
         ch->is_free = 1;
         remove_elem(heap->heap, ch);
         append_elem(free_list, ch);
-        
-        if(free_list->length % MERGE_FACTOR)
+
+        if(free_list->length % MERGE_FACTOR == 0)
         {
             struct chunk_header* free_ch = free_list->head;
             while(free_ch != NULL)
@@ -143,26 +143,25 @@ void *myrealloc(void *ptr, size_t size)
         ch = ch->next;
     }
 
-    struct chunk_header* ch_next = get_right_neighbour(ch);
+    struct chunk_header* free_part = get_right_neighbour(ch);
     size_t extra_size = aligned_size - ch->size;
 
-    size_t free_part_size = (ch_next->size + sizeof(struct chunk_header));
+    size_t free_part_size = (free_part->size + sizeof(struct chunk_header));
     size_t new_free_part_size = free_part_size - extra_size;
     
-    if(ch_next->is_free && aligned_size > ch->size && free_part_size >= extra_size)
+    if(free_part->is_free && aligned_size > ch->size && free_part_size >= extra_size)
     {
-        struct chunk_header* free_part = get_right_neighbour(ch);
         remove_elem(free_list, free_part);
-
         ch->size += extra_size;
         ch->is_free = 0;
 
-        if(new_free_part_size < sizeof(struct chunk_header)) ch->size += new_free_part_size;
+        if(new_free_part_size <= sizeof(struct chunk_header)) ch->size += new_free_part_size;
         else
         {
             struct chunk_header* new_free_part = get_right_neighbour(ch);
-            new_free_part->size = new_free_part_size;
-            myfree(new_free_part);
+            new_free_part->size = new_free_part_size - sizeof(struct chunk_header);
+            new_free_part->is_free = 1;
+            append_elem(free_list, new_free_part);
         }
     }
     else if(aligned_size < ch->size) ;
@@ -173,9 +172,7 @@ void *myrealloc(void *ptr, size_t size)
         {
             size_t cpy_size = ch->size < aligned_size ? ch->size : aligned_size;
             memcpy(new_ptr, ptr, cpy_size);
-            //todo fix this
-            // when calling myfree(ptr) it fucks up the heap for some reason
-           // myfree(ptr);
+            myfree(ptr);
         }
         return new_ptr;
     }
