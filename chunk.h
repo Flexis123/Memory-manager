@@ -9,7 +9,7 @@ struct chunk_header
     struct chunk_header* next;
     struct chunk_header* previous;
     size_t size;
-    int is_free;
+    char is_free;
 };
 
 struct chunk_header_list

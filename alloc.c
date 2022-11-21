@@ -54,13 +54,13 @@ void *mymalloc(size_t size)
         free_list = init_list(heap);
     }
     
-    struct chunk_header* ch = free_list->head;
+    struct chunk_header* ch = free_list->tail;
     size_t aligned_size = allign_size(size);
 
     while(ch != NULL)
     {
         if(ch->size >= aligned_size) break; 
-        ch = ch->next;
+        ch = ch->previous;
     }
 
     void* ptr = NULL;
@@ -128,7 +128,7 @@ void *myrealloc(void *ptr, size_t size)
 {
     size_t aligned_size = allign_size(size);
 
-    if(ptr == NULL && size == 0) return NULL;
+    if(ptr == NULL && size == 0) return heap->heap_end;
     else if(ptr == NULL) return mymalloc(aligned_size);
     else if(size == 0) 
     {
