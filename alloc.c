@@ -94,11 +94,11 @@ void *mycalloc(size_t nmemb, size_t size)
 
 void myfree(void *ptr)
 {
-    struct chunk_header* ch = heap->heap->head;
+    struct chunk_header* ch = heap->heap->tail;
     while(ch != NULL)
     {
         if(ch + 1 == ptr) break;
-        ch = ch->next;
+        ch = ch->previous;
     }
 
     if(ch != NULL) 
@@ -136,11 +136,11 @@ void *myrealloc(void *ptr, size_t size)
         return ptr;
     }
 
-    struct chunk_header* ch = heap->heap->head;
+    struct chunk_header* ch = heap->heap->tail;
     while(ch != NULL)
     {
         if(ch + 1 == ptr) break;
-        ch = ch->next;
+        ch = ch->previous;
     }
 
     struct chunk_header* free_part = get_right_neighbour(ch);
@@ -176,8 +176,6 @@ void *myrealloc(void *ptr, size_t size)
         }
         return new_ptr;
     }
-
-
     return ptr;
 }
 
