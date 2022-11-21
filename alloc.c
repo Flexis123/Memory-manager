@@ -46,7 +46,7 @@ void split_chunks(void* ptr, struct chunk_header* ch, size_t aligned_size)
 
 void *mymalloc(size_t size)
 {
-    if(size == 0) return NULL;
+    if(size == 0) return heap->heap_end;
     
     if(free_list == NULL || heap == NULL)
     {
@@ -168,7 +168,7 @@ void *myrealloc(void *ptr, size_t size)
     else if(aligned_size > ch->size)
     {
         void* new_ptr = mymalloc(aligned_size);
-        if(new_ptr != NULL)
+        if(new_ptr != heap->heap_end)
         {
             size_t cpy_size = ch->size < aligned_size ? ch->size : aligned_size;
             memcpy(new_ptr, ptr, cpy_size);

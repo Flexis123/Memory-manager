@@ -11,10 +11,9 @@ void* inc_heap_end(struct heap_t* hp, size_t offset)
     if(hp->length > hp->size)
     {
         size_t size_inc = offset + PAGE_SIZE;
-        if(sbrk(size_inc) != NULL)
-        {
-            hp->size += size_inc;
-        }
+        
+        if(sbrk(size_inc) != NULL) hp->size += size_inc;
+        else hp->length -= size_inc; 
     }
     hp->heap_end += offset;
 
