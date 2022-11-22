@@ -44,9 +44,18 @@ void remove_elem(struct chunk_header_list* list, struct chunk_header* ch)
     list->length--;
 }
 
-struct chunk_header* get_right_neighbour(struct chunk_header* ch)
+struct chunk_header* get_right_neighbour(struct chunk_header* ch, void* heap_end)
 {
-    return ((void*)(ch + 1)) + ch->size;
+    void* neighbour = ((void*)(ch + 1)) + ch->size;
+    if(neighbour >= heap_end) {
+        struct chunk_header* heap_end_ch = heap_end;
+        heap_end_ch->is_free = 0;
+        heap_end_ch->size = 0;
+        heap_end_ch->next = NULL;
+        heap_end_ch->previous = NULL;
+        return heap_end_ch;
+    }
+    return neighbour;
 }
 
 void print_list(struct chunk_header_list* free_list)

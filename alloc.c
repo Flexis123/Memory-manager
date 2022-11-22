@@ -112,7 +112,7 @@ void myfree(void *ptr)
             struct chunk_header* free_ch = free_list->head;
             while(free_ch != NULL)
             {
-                struct chunk_header* ch_next = get_right_neighbour(free_ch);
+                struct chunk_header* ch_next = get_right_neighbour(free_ch, heap->heap_end);
                 if(ch_next->is_free == 1)
                 {
                     free_ch->size += ch_next->size + sizeof(struct chunk_header);
@@ -143,7 +143,8 @@ void *myrealloc(void *ptr, size_t size)
         ch = ch->next;
     }
 
-    struct chunk_header* free_part = get_right_neighbour(ch);
+    struct chunk_header* free_part = get_right_neighbour(ch, heap->heap_end);
+   
     size_t extra_size = aligned_size - ch->size;
 
     size_t free_part_size = (free_part->size + sizeof(struct chunk_header));
@@ -158,13 +159,13 @@ void *myrealloc(void *ptr, size_t size)
         if(new_free_part_size <= sizeof(struct chunk_header)) ch->size += new_free_part_size;
         else
         {
-            struct chunk_header* new_free_part = get_right_neighbour(ch);
+            struct chunk_header* new_free_part = get_right_neighbour(ch, heap->heap_end);
+            
             new_free_part->size = new_free_part_size - sizeof(struct chunk_header);
             new_free_part->is_free = 1;
             append_elem(free_list, new_free_part);
         }
     }
-    else if(aligned_size < ch->size) ;
     else if(aligned_size > ch->size)
     {
         void* new_ptr = mymalloc(aligned_size);
